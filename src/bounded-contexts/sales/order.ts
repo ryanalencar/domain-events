@@ -1,11 +1,15 @@
 import { Entity } from "../../core/Entity";
+import { OrderCreatedEvent } from "./order-created";
+import { OrderPaidEvent } from "./order-paid";
+
+type OrderStatus = 'pendings' | 'paid'
 
 interface OrderProps {
   customerId: string;
   productId: string;
   amountInCents: number;
-  status: 'pendings' | 'paid';
-  createdAt: string;
+  status: OrderStatus;
+  createdAt: Date;
 }
 
 export class Order extends Entity<OrderProps> {
@@ -29,8 +33,22 @@ export class Order extends Entity<OrderProps> {
     return this.props.createdAt
   }
 
-  static create(props: OrderProps) {
+  public pay() {
+    this.props.status = 'paid'
+
+    const orderPaidEvent = new OrderPaidEvent(this)
+
+    this.addDomainEvent(orderPaidEvent)
+  }
+
+  static create(props: OrderProps, id?: string) {
     const order = new Order(props)
+
+    if (!id) {
+      const orderCreatedEvent = new OrderCreatedEvent(order)
+      order.addDomainEvent(orderCreatedEvent)
+    }
+
     return order
   }
 }
